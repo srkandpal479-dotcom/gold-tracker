@@ -23,7 +23,7 @@ def connect():
         return ftp
 
 ftp = connect()
-for part in [p for p in remote_dir.split("/") if p]:
+for part in [p for p in remote_dir.split("/") if p and p != "."]:
     try:
         ftp.cwd(part)
     except ftplib.error_perm:

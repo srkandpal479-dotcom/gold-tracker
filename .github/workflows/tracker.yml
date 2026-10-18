@@ -15,8 +15,6 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Unpack SDK
-        run: unzip -q creatorsapi_python_sdk.zip
 
       - uses: actions/setup-python@v5
         with:
@@ -31,6 +29,15 @@ jobs:
           PRODUCTS_CSV: ${{ secrets.PRODUCTS_CSV }}
         run: |
           if [ -n "$PRODUCTS_CSV" ]; then printf '%s\n' "$PRODUCTS_CSV" > products.csv; fi
+
+      - name: Sync from Google Sheet
+        env:
+          MARKET_CSV_URL: ${{ secrets.MARKET_CSV_URL }}
+          OFFERS_CSV_URL: ${{ secrets.OFFERS_CSV_URL }}
+          SKUS_CSV_URL: ${{ secrets.SKUS_CSV_URL }}
+          MARKET_PREV_URL: https://rupyabachao.com/gold/market.json
+          OUT_DIR: out
+        run: python sheet_sync.py
 
       - name: Run tracker
         env:

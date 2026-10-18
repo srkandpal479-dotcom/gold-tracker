@@ -1,0 +1,48 @@
+name: Gold tracker
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # har 10 minute (GitHub ka minimum 5 minute hai)
+  workflow_dispatch:          # haath se "Run workflow" button ke liye
+
+concurrency:
+  group: gold-tracker
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Products list from secret (optional)
+        env:
+          PRODUCTS_CSV: ${{ secrets.PRODUCTS_CSV }}
+        run: |
+          if [ -n "$PRODUCTS_CSV" ]; then printf '%s\n' "$PRODUCTS_CSV" > products.csv; fi
+
+      - name: Run tracker
+        env:
+          AMAZON_CREDENTIAL_ID: ${{ secrets.AMAZON_CREDENTIAL_ID }}
+          AMAZON_CREDENTIAL_SECRET: ${{ secrets.AMAZON_CREDENTIAL_SECRET }}
+          AMAZON_CREDENTIAL_VERSION: ${{ secrets.AMAZON_CREDENTIAL_VERSION }}
+          AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
+          OUT_DIR: out
+        run: python tracker.py
+
+      - name: Upload to Hostinger
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_DIR: ${{ secrets.FTP_DIR }}
+        run: python upload.py

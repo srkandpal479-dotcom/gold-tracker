@@ -1,0 +1,7 @@
+secrets.json
+out/
+*.csv.bak
+price_history.csv
+ranking.csv
+latest.json
+__pycache__/

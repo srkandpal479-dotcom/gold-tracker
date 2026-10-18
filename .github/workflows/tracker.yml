@@ -21,6 +21,17 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Locate Amazon SDK
+        run: |
+          if [ -f creatorsapi_python_sdk.zip ]; then unzip -q -o creatorsapi_python_sdk.zip; fi
+          d=$(find . -type d -name creatorsapi_python_sdk | head -n 1)
+          if [ -z "$d" ]; then
+            echo "SDK folder 'creatorsapi_python_sdk' repo mein nahi mila. Use repo ke root mein upload karo."
+            exit 1
+          fi
+          echo "SDK mila: $d"
+          echo "PYTHONPATH=$(cd "$(dirname "$d")" && pwd)" >> "$GITHUB_ENV"
+
       - name: Install requirements
         run: pip install -r requirements.txt
 

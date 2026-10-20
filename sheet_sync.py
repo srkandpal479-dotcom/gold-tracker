@@ -98,25 +98,33 @@ def do_market(rows):
     kv = {r.get("key", "").strip().lower(): r.get("value", "") for r in rows}
     m24, m22 = num(kv.get("manual_24k")), num(kv.get("manual_22k"))
     manual = bool(m24 or m22)
-    if not m24:
-        m24 = num(kv.get("gold_24k"))
-    if not m22:
-        m22 = num(kv.get("gold_22k"))
+    m24 = m24 or num(kv.get("gold_24k"))
+    m22 = m22 or num(kv.get("gold_22k"))
+    prev = read_prev_market()
     ok, reason = True, ""
     if not m24 or not (1000 < m24 < 100000):
         ok, reason = False, "24K rate missing/invalid"
     elif not manual:
         if m22 and abs(m22 / m24 - 0.916) > 0.03:
             ok, reason = False, "22K/24K ratio galat lag raha hai"
-        prev = read_prev_market()
-        if ok and prev and prev.get("ok") and prev.get("gold_24k") and abs(m24 / prev["gold_24k"] - 1) > 0.05:
+        if prev and prev.get("ok") and prev.get("gold_24k") and abs(m24 / prev["gold_24k"] - 1) > 0.05:
             ok, reason = False, "rate pichle se 5%% se zyada kooda"
     if not ok:
         warn("Market rate rok diya: " + reason)
+    now = int(datetime.now(IST).timestamp())
+    hist = [h for h in (prev or {}).get("hist", []) if now - h[0] < 48 * 3600]
+    if ok and (not hist or now - hist[-1][0] >= 3600):
+        hist.append([now, m24])
+    change = None
+    cand = [h for h in hist if 18 * 3600 <= now - h[0] <= 30 * 3600]
+    if ok and cand:
+        ref = min(cand, key=lambda h: abs((now - h[0]) - 86400))
+        change = round(m24 - ref[1])
     write_json("market.json", {
         "ok": ok, "reason": reason, "manual": manual,
         "gold_24k": m24 if ok else None, "gold_22k": m22 if ok else None,
         "source": kv.get("source", ""), "city": kv.get("city", ""), "updated": now_iso(),
+        "change_24h": change, "hist": hist,
     })
 
 

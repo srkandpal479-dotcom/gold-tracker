@@ -8,7 +8,7 @@ IST = timezone(timedelta(hours=5, minutes=30))
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.environ.get("OUT_DIR", os.path.join(HERE, "out"))
 os.makedirs(OUT, exist_ok=True)
-FIXED = {"asin", "name", "weight_g", "purity", "commission", "show"}
+FIXED = {"asin", "name", "weight_g", "purity", "commission", "show", "short_link"}
 FALSE_WORDS = {"false", "no", "0", "n", "off"}
 TRUE_WORDS = {"true", "yes", "1", "y", "on"}
 
@@ -18,7 +18,7 @@ def warn(msg):
 
 
 def clean(s):
-    s = (s or "").strip()
+    s = (s or "").strip().replace("\u00e2\u201a\u00b9", "\u20b9")  # kharab ₹ (a,¹) ko theek karo
     if re.search("[âÃ]", s):  # kharab encoding (â‚¹ jaisa) ko theek karne ki koshish
         try:
             s = s.encode("cp1252").decode("utf-8")
@@ -189,14 +189,15 @@ def do_skus(rows):
             continue
         if is_false(r.get("show")):
             continue
-        prods.append([asin, ("%g" % w), ("%g" % p), r.get("commission", ""), r.get("name", "")])
+        prods.append([asin, ("%g" % w), ("%g" % p), r.get("commission", ""), r.get("name", ""),
+                      (r.get("short_link", "") if r.get("short_link", "").startswith("https://") else "")])
         rules[asin] = {"off": [k for k, v in r.items() if k not in FIXED and is_false(v)]}
     if not prods:
         warn("SKU tab se koi valid row nahi mili, purani products.csv chalegi")
         return
     with open(os.path.join(HERE, "products.csv"), "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["asin", "weight_g", "purity", "commission", "name"])
+        w.writerow(["asin", "weight_g", "purity", "commission", "name", "short_link"])
         w.writerows(prods)
     write_json("sku_rules.json", rules)
     print("products.csv me %d SKUs" % len(prods))

@@ -33,6 +33,7 @@ BATCH_SIZE = 10          # Amazon ek call mein max 10 ASIN leta hai
 PAUSE_BETWEEN_CALLS = 1.5  # seconds, Amazon ki limit ka dhyan rakhne ke liye
 
 RESOURCES = [
+    'images.primary.large',
     'images.primary.medium',
     'itemInfo.title',
     'offersV2.listings.price',
@@ -75,6 +76,7 @@ def load_products():
                 "purity": purity,
                 "commission": (row.get("commission") or "").strip().lower(),
                 "name": (row.get("name") or "").strip(),
+                "short_link": (row.get("short_link") or "").strip(),
             })
     return products
 
@@ -114,7 +116,7 @@ def parse_item(item):
         "availability": availability or "NO_OFFER",
         "seller": get(listing, "merchantInfo", "name") if listing else "",
         "url": item.get("detailPageURL", ""),
-        "image": get(item, "images", "primary", "medium", "url") or "",
+        "image": get(item, "images", "primary", "large", "url") or get(item, "images", "primary", "medium", "url") or "",
     }
 
 
@@ -178,6 +180,7 @@ def build_rows(products, fetched):
             "url": "",
             "image": "",
             "off": rules.get(p["asin"], {}).get("off", []),
+            "short_link": p.get("short_link", ""),
         }
         if info:
             row.update({
